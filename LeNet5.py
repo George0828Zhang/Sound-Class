@@ -110,3 +110,9 @@ model.fit(x=np.asarray(data),y=np.asarray(labels),epochs=20,batch_size=32)
 
 loss, metrics = model.evaluate(np.asarray(v_data), np.asarray(v_labels), batch_size=128)
 print ("Loss={:.5f} Accu={:.2f}%".format(loss,metrics*100))
+
+if 'y' in input("Save model? [y/n]"):
+	filename = input("filename:")
+	if filename[-3:] != ".h5":
+		filename += ".h5"
+	model.save(filename)
