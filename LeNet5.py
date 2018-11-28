@@ -10,23 +10,31 @@ from keras.layers import Dense
 
 # model as sequential model
 model = Sequential()
+i_sz = 64
+sz = i_sz
+ks = 5
 # add convolution layer (32x32x1)
-model.add(Convolution2D(filters=6,kernel_size=5,strides=1,activation='relu',input_shape=(32,32,1)))
+model.add(Convolution2D(filters=6,kernel_size=ks,strides=1,activation='relu',input_shape=(sz,sz, 1)))
 
 # add max pooling layer (28x28x6)
 model.add(MaxPooling2D(pool_size=2,strides=2))
 
 # (14x14x6)
-model.add(Convolution2D(filters=16,kernel_size=5,strides=1,activation='relu',input_shape=(14, 14, 6)))
+sz = (sz-ks+1)/2
+model.add(Convolution2D(filters=16,kernel_size=ks,strides=1,activation='relu',input_shape=(sz, sz, 6)))
 
 # (10x10x16)
 model.add(MaxPooling2D(pool_size=2,strides=2))
 
 # add flatten layer (5x5x16)
+sz = (sz-ks+1)/2
 model.add(Flatten())
 # add FC layer (400)
-model.add(Dense(120,activation='relu', input_dim=400))
+sz = sz**2*16
+model.add(Dense(120,activation='relu', input_dim=sz))
+
 model.add(Dense(84,activation='relu', input_dim=120))
+
 model.add(Dense(20,activation='softmax', input_dim=84))
 # compile
 # model.compile(loss='categorical_crossentropy',
@@ -42,30 +50,63 @@ model.compile(loss='categorical_crossentropy',optimizer=optimizer,metrics=['accu
 # training
 data = []
 labels = []
+v_data = []
+v_labels = []
 
 import os
-from scipy import signal
+from scipy import signal, misc
 
 labelnames = ["Tettigonioidea1", "Tettigonioidea2", "drums_Snare", "Grylloidea1",\
- "drums_MidTom", "drums_HiHat", "drums_Kick", "drums_SmallTom",\
-  "guitar_chord2", "Frog1", "Frog2", "drums_FloorTom", "guitar_7th_fret", \
-  "drums_Rim", "Grylloidea2", "guitar_3rd_fret", "drums_Ride", \
-  "guitar_chord1", "guitar_9th_fret", "Frog3"]
+"drums_MidTom", "drums_HiHat", "drums_Kick", "drums_SmallTom",\
+"guitar_chord2", "Frog1", "Frog2", "drums_FloorTom", "guitar_7th_fret", \
+"drums_Rim", "Grylloidea2", "guitar_3rd_fret", "drums_Ride", \
+"guitar_chord1", "guitar_9th_fret", "Frog3"]
+
+import math
+def opt_width(sig):
+	w = math.floor(((len(sig)*112+1)**0.5-1)/7.)
+	return w if w % 2 == 0 else (w + 1)
+def refine(sig, w):
+	h = w//2
+	l = 2*h**2-(h-1)*(h//4)
+	print(l, len(sig))
+	if l > len(sig):
+		return np.pad(sig, (0, l-len(sig)), 'constant')
+	else:
+		return sig[0:l]
+
 
 for (lbl,name) in enumerate(labelnames):
 	tdir = "train/{}/".format(name)
-	files = os.listdir(tdir)
-	for filename in files:
+	tfiles = os.listdir(tdir)
+	for filename in tfiles:
 		sig = np.load(tdir + filename)
-		f, t, gram = signal.spectrogram(sig, window=signal.get_window("hamming", 63))#63->32
-		# print(f)
-		# gram = cv2.normalize(gram, None, 0, 255, norm_type=cv2.NORM_MINMAX, dtype=cv2.CV_8U)
-		print(gram.shape)
-		# to (32x32)
-		data.append(gram)
-		label.append([float(i==lbl) for i in range(20)])
+		width = opt_width(sig)
+		
+		hwindow=signal.get_window("hamming", width)
+		f, t, gram = signal.spectrogram(sig, window=hwindow, nperseg=width, mode="magnitude")
+		
+		# downscale to (nxn), 'lanczos' or 'bicubic'
+		# this requires "pillow" pkg
+		gram = misc.imresize(gram, (i_sz, i_sz), interp='lanczos', mode=None)
+		data.append(np.expand_dims(gram, axis=2))		
+		labels.append([float(i==lbl) for i in range(20)])
+
+	vdir = "val/{}/".format(name)
+	vfiles = os.listdir(vdir)
+	for filename in vfiles:
+		sig = np.load(vdir + filename)
+		width = opt_width(sig)		
+		hwindow=signal.get_window("hamming", width)
+		f, t, gram = signal.spectrogram(sig, window=hwindow, nperseg=width, mode="magnitude")
+		gram = misc.imresize(gram, (i_sz, i_sz), interp='lanczos', mode=None)
+		v_data.append(np.expand_dims(gram, axis=2))			
+		v_labels.append([float(i==lbl) for i in range(20)])
 		
 
-model.fit(x=data,y=label,epochs=20,batch_size=32)
+model.fit(x=np.asarray(data),y=np.asarray(labels),epochs=20,batch_size=32)
 # data is a tensor with shape (# of data, height, width, depth)
 # label is a tensor with shape (# of labels, # of classes)
+
+loss, metrics = model.evaluate(np.asarray(v_data), np.asarray(v_labels), batch_size=128)
+print ("Loss={:.5f} Accu={:.2f}%".format(loss,metrics*100))
