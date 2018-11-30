@@ -4,7 +4,7 @@ import numpy as np
 import sys
 import os
 import math
-# import cv2
+import cv2
 
 i_sz = 64
 
@@ -16,7 +16,12 @@ if len(sys.argv) != 3:
 	print("expected 2 arguments: [trainfolder] [valfolder]")
 	exit(1)
 elif os.path.isdir(sys.argv[1]) and os.path.isdir(sys.argv[2]):
-	pass
+	trainF = sys.argv[1] 
+	valF = sys.argv[2]
+	if trainF[-1] == '/':
+		trainF = trainF[:-1]
+	if valF[-1] == '/':
+		valF = valF[:-1]
 else:
 	print("cannot parse arguments, please retry.")
 	exit(1)
@@ -33,9 +38,9 @@ labelnames = ["Tettigonioidea1", "Tettigonioidea2", "drums_Snare", "Grylloidea1"
 data_cnt = 0
 processed_cnt = 0
 for (lbl,name) in enumerate(labelnames):
-	tdir = "spec1/{}/".format(name)
+	tdir = "{}/{}/".format(trainF,name)
 	tfiles = os.listdir(tdir)	
-	vdir = "spec2/{}/".format(name)
+	vdir = "{}/{}/".format(valF,name)
 	vfiles = os.listdir(vdir)
 	data_cnt += len(tfiles) + len(vfiles)
 
@@ -44,40 +49,28 @@ def showprogress(showbar=True):
 	if showbar:
 		cnt = int(processed_cnt/data_cnt*30)
 		bar = "["+"="*30+"]" if cnt==30 else ("["+"="*cnt+">"+"."*(29-cnt)+"]")
-	print("Processing data... ({}/{}) {}".format(processed_cnt,data_cnt, bar), end='\r')
+	print("Processing data... ({}/{}) {}".format(processed_cnt,data_cnt, bar), end='\r', flush=True)
 
-if len(data) == 0:
-	showprogress()
-	for (lbl,name) in enumerate(labelnames):
-		tdir = "spec1/{}/".format(name)
-		tfiles = os.listdir(tdir)
-		for filename in tfiles:
-			sig = np.load(tdir + filename)		
-			data.append(sig2data2(sig))
-			labels.append([float(i==lbl) for i in range(20)])
-			processed_cnt += 1
-			 np.expand_dims(gram, axis=2)
-			showprogress()
+showprogress()
+for (lbl,name) in enumerate(labelnames):
+	tdir = "{}/{}/".format(trainF,name)
+	tfiles = os.listdir(tdir)
+	for filename in tfiles:
+		gram = cv2.imread(tdir+filename)
+		data.append(np.expand_dims(gram, axis=2))
+		labels.append([float(i==lbl) for i in range(20)])
+		processed_cnt += 1		
+		showprogress()
 
-		vdir = "spec2/{}/".format(name)
-		vfiles = os.listdir(vdir)
-		for filename in vfiles:
-			sig = np.load(vdir + filename)
-			v_data.append(sig2data2(sig))
-			v_labels.append([float(i==lbl) for i in range(20)])
-			processed_cnt += 1
-			showprogress()
-	print("")	
-	print("Saving spectrogram data to .npy files...")
-	np.save("train_data.npy", data)
-	np.save("train_label.npy", labels)
-	np.save("val_data.npy", v_data)
-	np.save("val_label.npy", v_labels)
-	print("Done.")
-
-
-
-
+	vdir = "{}/{}/".format(valF,name)
+	vfiles = os.listdir(vdir)
+	for filename in vfiles:
+		gram = cv2.imread(vdir+filename)
+		v_data.append(np.expand_dims(gram, axis=2))
+		v_labels.append([float(i==lbl) for i in range(20)])
+		processed_cnt += 1
+		showprogress()
+print("\r\nDone")
 
 
 
