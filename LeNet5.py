@@ -12,8 +12,8 @@ data = []
 labels = []
 v_data = []
 v_labels = []
-if len(sys.argv) != 3:
-	print("expected 2 arguments: [trainfolder] [valfolder]")
+if len(sys.argv) != 4:
+	print("expected 3 arguments: [trainfolder] [valfolder] [save.h5/none]")
 	exit(1)
 elif os.path.isdir(sys.argv[1]) and os.path.isdir(sys.argv[2]):
 	trainF = sys.argv[1] 
@@ -22,6 +22,7 @@ elif os.path.isdir(sys.argv[1]) and os.path.isdir(sys.argv[2]):
 		trainF = trainF[:-1]
 	if valF[-1] == '/':
 		valF = valF[:-1]
+	savefile = sys.argv[3]
 else:
 	print("cannot parse arguments, please retry.")
 	exit(1)
@@ -56,7 +57,7 @@ for (lbl,name) in enumerate(labelnames):
 	tdir = "{}/{}/".format(trainF,name)
 	tfiles = os.listdir(tdir)
 	for filename in tfiles:
-		gram = cv2.imread(tdir+filename)
+		gram = cv2.imread(tdir+filename, 0)
 		data.append(np.expand_dims(gram, axis=2))
 		labels.append([float(i==lbl) for i in range(20)])
 		processed_cnt += 1		
@@ -65,7 +66,7 @@ for (lbl,name) in enumerate(labelnames):
 	vdir = "{}/{}/".format(valF,name)
 	vfiles = os.listdir(vdir)
 	for filename in vfiles:
-		gram = cv2.imread(vdir+filename)
+		gram = cv2.imread(vdir+filename, 0)
 		v_data.append(np.expand_dims(gram, axis=2))
 		v_labels.append([float(i==lbl) for i in range(20)])
 		processed_cnt += 1
@@ -120,11 +121,13 @@ model.fit(x=np.asarray(data),y=np.asarray(labels),epochs=22,batch_size=32)
 # data is a tensor with shape (# of data, height, width, depth)
 # label is a tensor with shape (# of labels, # of classes)
 
+
 loss, metrics = model.evaluate(np.asarray(v_data), np.asarray(v_labels), batch_size=128)
+
 print ("Loss={:.5f} Accu={:.2f}%".format(loss,metrics*100))
 
-if 'y' in input("Save model? [y/n]"):
-	filename = input("filename:")
-	if filename[-3:] != ".h5":
-		filename += ".h5"
-	model.save(filename)
+if savefile not in ["None", "none", "null"]:
+	if savefile[-3:] != ".h5":
+		savefile += ".h5"
+	print("Saving model to "+savefile+"...")
+	model.save(savefile)
