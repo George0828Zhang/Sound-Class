@@ -1,16 +1,94 @@
 #!/usr/bin/env python3
 
 import numpy as np
+import sys
+import os
+import math
+# import cv2
+
+i_sz = 64
+
+data = []
+labels = []
+v_data = []
+v_labels = []
+if len(sys.argv) != 3:
+	print("expected 2 arguments: [trainfolder] [valfolder]")
+	exit(1)
+elif os.path.isdir(sys.argv[1]) and os.path.isdir(sys.argv[2]):
+	pass
+else:
+	print("cannot parse arguments, please retry.")
+	exit(1)
+
+# training
+
+from scipy import signal
+labelnames = ["Tettigonioidea1", "Tettigonioidea2", "drums_Snare", "Grylloidea1",\
+"drums_MidTom", "drums_HiHat", "drums_Kick", "drums_SmallTom",\
+"guitar_chord2", "Frog1", "Frog2", "drums_FloorTom", "guitar_7th_fret", \
+"drums_Rim", "Grylloidea2", "guitar_3rd_fret", "drums_Ride", \
+"guitar_chord1", "guitar_9th_fret", "Frog3"]
+
+data_cnt = 0
+processed_cnt = 0
+for (lbl,name) in enumerate(labelnames):
+	tdir = "spec1/{}/".format(name)
+	tfiles = os.listdir(tdir)	
+	vdir = "spec2/{}/".format(name)
+	vfiles = os.listdir(vdir)
+	data_cnt += len(tfiles) + len(vfiles)
+
+def showprogress(showbar=True):
+	bar = ""
+	if showbar:
+		cnt = int(processed_cnt/data_cnt*30)
+		bar = "["+"="*30+"]" if cnt==30 else ("["+"="*cnt+">"+"."*(29-cnt)+"]")
+	print("Processing data... ({}/{}) {}".format(processed_cnt,data_cnt, bar), end='\r')
+
+if len(data) == 0:
+	showprogress()
+	for (lbl,name) in enumerate(labelnames):
+		tdir = "spec1/{}/".format(name)
+		tfiles = os.listdir(tdir)
+		for filename in tfiles:
+			sig = np.load(tdir + filename)		
+			data.append(sig2data2(sig))
+			labels.append([float(i==lbl) for i in range(20)])
+			processed_cnt += 1
+			 np.expand_dims(gram, axis=2)
+			showprogress()
+
+		vdir = "spec2/{}/".format(name)
+		vfiles = os.listdir(vdir)
+		for filename in vfiles:
+			sig = np.load(vdir + filename)
+			v_data.append(sig2data2(sig))
+			v_labels.append([float(i==lbl) for i in range(20)])
+			processed_cnt += 1
+			showprogress()
+	print("")	
+	print("Saving spectrogram data to .npy files...")
+	np.save("train_data.npy", data)
+	np.save("train_label.npy", labels)
+	np.save("val_data.npy", v_data)
+	np.save("val_label.npy", v_labels)
+	print("Done.")
+
+
+
+
+
+
+
 from keras.models import Sequential
 from keras.layers import Convolution2D
 from keras.layers import MaxPooling2D
 from keras.layers import Flatten
 from keras.layers import Dense
-# import cv2
-
 # model as sequential model
 model = Sequential()
-i_sz = 64
+
 sz = i_sz
 ks = 5
 # add convolution layer (32x32x1)
@@ -45,61 +123,7 @@ optimizer = Adam(lr=0.0001)
 # optimizer = SGD(lr=0.0001, momentum=0.2, nesterov=True)
 model.compile(loss='categorical_crossentropy',optimizer=optimizer,metrics=['accuracy'])
 
-# training
-data = []
-labels = []
-v_data = []
-v_labels = []
-
-import os
-from scipy import signal, misc
-
-labelnames = ["Tettigonioidea1", "Tettigonioidea2", "drums_Snare", "Grylloidea1",\
-"drums_MidTom", "drums_HiHat", "drums_Kick", "drums_SmallTom",\
-"guitar_chord2", "Frog1", "Frog2", "drums_FloorTom", "guitar_7th_fret", \
-"drums_Rim", "Grylloidea2", "guitar_3rd_fret", "drums_Ride", \
-"guitar_chord1", "guitar_9th_fret", "Frog3"]
-
-import math
-def opt_width(sig):
-	w = math.floor(((len(sig)*112+1)**0.5-1)/7.)
-	return w if w % 2 == 0 else (w + 1)
-def refine(sig, w):
-	h = w//2
-	l = 2*h**2-(h-1)*(h//4)
-	print(l, len(sig))
-	if l > len(sig):
-		return np.pad(sig, (0, l-len(sig)), 'constant')
-	else:
-		return sig[0:l]
-
-def sig2data(sig):
-	width = opt_width(sig)
-	hwindow=signal.get_window("hamming", width)
-	# what about phase?
-	f, t, gram = signal.spectrogram(sig, window=hwindow, nperseg=width, mode="complex")
-	# downscale to (nxn), 'lanczos' or 'bicubic'
-	# this requires "pillow" pkg
-	gram = misc.imresize(gram, (i_sz, i_sz), interp='lanczos', mode=None)
-	return np.expand_dims(gram, axis=2)
-
-for (lbl,name) in enumerate(labelnames):
-	tdir = "train/{}/".format(name)
-	tfiles = os.listdir(tdir)
-	for filename in tfiles:
-		sig = np.load(tdir + filename)		
-		data.append(sig2data(sig))
-		labels.append([float(i==lbl) for i in range(20)])
-
-	vdir = "val/{}/".format(name)
-	vfiles = os.listdir(vdir)
-	for filename in vfiles:
-		sig = np.load(vdir + filename)
-		v_data.append(sig2data(sig))
-		v_labels.append([float(i==lbl) for i in range(20)])
-		
-
-model.fit(x=np.asarray(data),y=np.asarray(labels),epochs=30,batch_size=64)
+model.fit(x=np.asarray(data),y=np.asarray(labels),epochs=22,batch_size=32)
 # data is a tensor with shape (# of data, height, width, depth)
 # label is a tensor with shape (# of labels, # of classes)
 
