@@ -36,15 +36,13 @@ model.add(Dense(120,activation='relu', input_dim=sz))
 model.add(Dense(84,activation='relu', input_dim=120))
 
 model.add(Dense(20,activation='softmax', input_dim=84))
-# compile
-# model.compile(loss='categorical_crossentropy',
-#               optimizer='sgd',
-#               metrics=['accuracy'])
-# model.compile(loss=keras.losses.categorical_crossentropy,
-#               optimizer=keras.optimizers.SGD(lr=0.01, momentum=0.9, nesterov=True))
+
+
 
 from keras.optimizers import Adam
 optimizer = Adam(lr=0.0001)
+# from keras.optimizers import SGD
+# optimizer = SGD(lr=0.0001, momentum=0.2, nesterov=True)
 model.compile(loss='categorical_crossentropy',optimizer=optimizer,metrics=['accuracy'])
 
 # training
@@ -75,36 +73,33 @@ def refine(sig, w):
 	else:
 		return sig[0:l]
 
+def sig2data(sig):
+	width = opt_width(sig)
+	hwindow=signal.get_window("hamming", width)
+	# what about phase?
+	f, t, gram = signal.spectrogram(sig, window=hwindow, nperseg=width, mode="complex")
+	# downscale to (nxn), 'lanczos' or 'bicubic'
+	# this requires "pillow" pkg
+	gram = misc.imresize(gram, (i_sz, i_sz), interp='lanczos', mode=None)
+	return np.expand_dims(gram, axis=2)
 
 for (lbl,name) in enumerate(labelnames):
 	tdir = "train/{}/".format(name)
 	tfiles = os.listdir(tdir)
 	for filename in tfiles:
-		sig = np.load(tdir + filename)
-		width = opt_width(sig)
-		
-		hwindow=signal.get_window("hamming", width)
-		f, t, gram = signal.spectrogram(sig, window=hwindow, nperseg=width, mode="magnitude")
-		
-		# downscale to (nxn), 'lanczos' or 'bicubic'
-		# this requires "pillow" pkg
-		gram = misc.imresize(gram, (i_sz, i_sz), interp='lanczos', mode=None)
-		data.append(np.expand_dims(gram, axis=2))		
+		sig = np.load(tdir + filename)		
+		data.append(sig2data(sig))
 		labels.append([float(i==lbl) for i in range(20)])
 
 	vdir = "val/{}/".format(name)
 	vfiles = os.listdir(vdir)
 	for filename in vfiles:
 		sig = np.load(vdir + filename)
-		width = opt_width(sig)		
-		hwindow=signal.get_window("hamming", width)
-		f, t, gram = signal.spectrogram(sig, window=hwindow, nperseg=width, mode="magnitude")
-		gram = misc.imresize(gram, (i_sz, i_sz), interp='lanczos', mode=None)
-		v_data.append(np.expand_dims(gram, axis=2))			
+		v_data.append(sig2data(sig))
 		v_labels.append([float(i==lbl) for i in range(20)])
 		
 
-model.fit(x=np.asarray(data),y=np.asarray(labels),epochs=20,batch_size=32)
+model.fit(x=np.asarray(data),y=np.asarray(labels),epochs=30,batch_size=64)
 # data is a tensor with shape (# of data, height, width, depth)
 # label is a tensor with shape (# of labels, # of classes)
 
