@@ -3,14 +3,16 @@ import cv2
 import math	
 from scipy import signal
 
-i_sz = 64
+sz_x = 64
+sz_y = 64
 
 def sig2data(sig):
 	width = 128#math.floor(((len(sig)*112+1)**0.5-1)/7.)
 	hwindow=signal.get_window("hamming", width)
 	f, t, gram = signal.spectrogram(sig, window=hwindow, nperseg=width, mode="magnitude")
 	gram = cv2.normalize(gram, None, 0, 255, norm_type=cv2.NORM_MINMAX, dtype=cv2.CV_8U)
-	gram = cv2.resize(gram, (i_sz, i_sz), interpolation=cv2.INTER_LANCZOS4)#CUBIC
+	gram = cv2.resize(gram, (sz_y, sz_x), interpolation=cv2.INTER_LANCZOS4)#CUBIC
+	assert gram.shape == (sz_x, sz_y)
 	return gram
 
 if __name__ == "__main__":

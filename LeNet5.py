@@ -6,7 +6,8 @@ import os
 import math
 import cv2
 
-i_sz = 64
+sz_x = 64
+sz_y = 64
 
 data = []
 labels = []
@@ -76,38 +77,31 @@ print("\r\nDone")
 
 
 from keras.models import Sequential
-from keras.layers import Convolution2D
-from keras.layers import MaxPooling2D
-from keras.layers import Flatten
-from keras.layers import Dense
+from keras.layers import Convolution2D, MaxPooling2D, Flatten, Dense
 # model as sequential model
 model = Sequential()
 
-sz = i_sz
 ks = 5
 # add convolution layer (32x32x1)
-model.add(Convolution2D(filters=6,kernel_size=ks,strides=1,activation='relu',input_shape=(sz,sz, 1)))
+model.add(Convolution2D(filters=6,kernel_size=ks,strides=1,activation='relu',input_shape=(sz_x,sz_y, 1)))
 
 # add max pooling layer (28x28x6)
 model.add(MaxPooling2D(pool_size=2,strides=2))
 
 # (14x14x6)
-sz = (sz-ks+1)/2
-model.add(Convolution2D(filters=16,kernel_size=ks,strides=1,activation='relu',input_shape=(sz, sz, 6)))
+model.add(Convolution2D(filters=16,kernel_size=ks,strides=1,activation='relu'))
 
 # (10x10x16)
 model.add(MaxPooling2D(pool_size=2,strides=2))
 
 # add flatten layer (5x5x16)
-sz = (sz-ks+1)/2
 model.add(Flatten())
 # add FC layer (400)
-sz = sz**2*16
-model.add(Dense(120,activation='relu', input_dim=sz))
+model.add(Dense(120,activation='relu'))
 
-model.add(Dense(84,activation='relu', input_dim=120))
+model.add(Dense(84,activation='relu'))
 
-model.add(Dense(20,activation='softmax', input_dim=84))
+model.add(Dense(20,activation='softmax'))
 
 
 
@@ -117,7 +111,7 @@ optimizer = Adam(lr=0.0001)
 # optimizer = SGD(lr=0.0001, momentum=0.2, nesterov=True)
 model.compile(loss='categorical_crossentropy',optimizer=optimizer,metrics=['accuracy'])
 
-model.fit(x=np.asarray(data),y=np.asarray(labels),epochs=22,batch_size=32)
+model.fit(x=np.asarray(data),y=np.asarray(labels),epochs=20,batch_size=32)
 # data is a tensor with shape (# of data, height, width, depth)
 # label is a tensor with shape (# of labels, # of classes)
 
