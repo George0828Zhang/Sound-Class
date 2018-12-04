@@ -58,8 +58,7 @@ for (lbl,name) in enumerate(labelnames):
 	tdir = "{}/{}/".format(trainF,name)
 	tfiles = os.listdir(tdir)
 	for filename in tfiles:
-		gram = cv2.imread(tdir+filename, cv2.IMREAD_GRAYSCALE)
-		# data.append(gram)
+		gram = cv2.imread(tdir+filename, 0)
 		data.append(np.expand_dims(gram, axis=2))
 		labels.append([float(i==lbl) for i in range(20)])
 		processed_cnt += 1		
@@ -68,8 +67,7 @@ for (lbl,name) in enumerate(labelnames):
 	vdir = "{}/{}/".format(valF,name)
 	vfiles = os.listdir(vdir)
 	for filename in vfiles:
-		gram = cv2.imread(vdir+filename, cv2.IMREAD_GRAYSCALE)
-		# v_data.append(gram)
+		gram = cv2.imread(vdir+filename, 0)
 		v_data.append(np.expand_dims(gram, axis=2))
 		v_labels.append([float(i==lbl) for i in range(20)])
 		processed_cnt += 1
@@ -80,34 +78,49 @@ print("\r\nDone")
 
 from keras.models import Sequential
 from keras.layers import Convolution2D, MaxPooling2D, Flatten, Dense, BatchNormalization, Dropout
+
 # model as sequential model
 model = Sequential()
 
-ks = 5
-# add convolution layer (32x32x1)
-model.add(Convolution2D(filters=6,kernel_size=ks,strides=1,activation='relu',input_shape=(sz_x,sz_y, 1)))
+pad = 'same'
+# add convolution layer (224*224*1) padding=same
+model.add(Convolution2D(filters=96,kernel_size=11,strides=4,activation='relu',input_shape=(sz_x,sz_y,1),padding=pad))
 
-# add max pooling layer (28x28x6)
-model.add(MaxPooling2D(pool_size=2,strides=2))
-# model.add(BatchNormalization())
+# add max pooling layer ()
+model.add(MaxPooling2D(pool_size=2,strides=2,padding=pad))
+model.add(BatchNormalization())
 
-# (14x14x6)
-model.add(Convolution2D(filters=16,kernel_size=ks,strides=1,activation='relu'))
+# ()
+model.add(Convolution2D(filters=256,kernel_size=11,strides=1,activation='relu',padding=pad))
+model.add(MaxPooling2D(pool_size=2,strides=2,padding=pad))
+model.add(BatchNormalization())
 
-# (10x10x16)
-model.add(MaxPooling2D(pool_size=2,strides=2))
-# model.add(BatchNormalization())
+# ()
+model.add(Convolution2D(filters=384,kernel_size=3,strides=1,activation='relu',padding=pad))
+model.add(MaxPooling2D(pool_size=2,strides=2,padding=pad))
+model.add(BatchNormalization())
+
+# ()
+model.add(Convolution2D(filters=384,kernel_size=3,strides=1,activation='relu',padding=pad))
+model.add(MaxPooling2D(pool_size=2,strides=2,padding=pad))
+model.add(BatchNormalization())
+
+
+# ()
+model.add(Convolution2D(filters=256,kernel_size=3,strides=1,activation='relu',padding=pad))
+model.add(MaxPooling2D(pool_size=2,strides=2,padding=pad))
+model.add(BatchNormalization())
 
 # add flatten layer (5x5x16)
 model.add(Flatten())
 # add FC layer (400)
-model.add(Dense(120,activation='relu'))
-# model.add(Dropout(0.35))
-# model.add(BatchNormalization())
+model.add(Dense(4096,activation='relu'))
+model.add(Dropout(0.41))
+model.add(BatchNormalization())
 
-model.add(Dense(84,activation='relu'))
-# model.add(Dropout(0.35))
-# model.add(BatchNormalization())
+model.add(Dense(4096,activation='relu'))
+model.add(Dropout(0.41))
+model.add(BatchNormalization())
 
 model.add(Dense(20,activation='softmax'))
 
@@ -115,8 +128,7 @@ model.add(Dense(20,activation='softmax'))
 
 batch_size = 128
 lr = 0.001*batch_size/64
-# about 90 is optimal
-epoch = 90
+epoch = 150
 
 
 from keras.optimizers import Adam
