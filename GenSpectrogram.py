@@ -10,7 +10,7 @@ sz_y = 64
 
 
 def sig2data(sig):
-	width = sz_x*2#math.floor(((len(sig)*112+1)**0.5-1)/7.)
+	width = 128#math.floor(((len(sig)*112+1)**0.5-1)/7.)
 	hwindow=signal.get_window("hamming", width)
 	f, t, gram = signal.spectrogram(sig, window=hwindow, nperseg=width, mode="magnitude")
 	# f, t, gram2 = signal.spectrogram(sig, window=hwindow, nperseg=width, mode="phase")

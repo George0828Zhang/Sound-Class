@@ -5,6 +5,7 @@ import sys
 import os
 import math
 import cv2
+import time
 
 sz_x = 64
 sz_y = 64
@@ -87,40 +88,40 @@ pad = 'same'
 model.add(Convolution2D(filters=96,kernel_size=11,strides=4,activation='relu',input_shape=(sz_x,sz_y,1),padding=pad))
 
 # add max pooling layer ()
-model.add(MaxPooling2D(pool_size=2,strides=2,padding=pad))
+model.add(MaxPooling2D(pool_size=3,strides=2,padding=pad))
 model.add(BatchNormalization())
 
 # ()
-model.add(Convolution2D(filters=256,kernel_size=11,strides=1,activation='relu',padding=pad))
-model.add(MaxPooling2D(pool_size=2,strides=2,padding=pad))
-model.add(BatchNormalization())
-
-# ()
-model.add(Convolution2D(filters=384,kernel_size=3,strides=1,activation='relu',padding=pad))
-model.add(MaxPooling2D(pool_size=2,strides=2,padding=pad))
+model.add(Convolution2D(filters=256,kernel_size=5,strides=1,activation='relu',padding=pad))
+model.add(MaxPooling2D(pool_size=3,strides=2,padding=pad))
 model.add(BatchNormalization())
 
 # ()
 model.add(Convolution2D(filters=384,kernel_size=3,strides=1,activation='relu',padding=pad))
-model.add(MaxPooling2D(pool_size=2,strides=2,padding=pad))
-model.add(BatchNormalization())
+# model.add(MaxPooling2D(pool_size=2,strides=2,padding=pad))
+# model.add(BatchNormalization())
+
+# ()
+model.add(Convolution2D(filters=384,kernel_size=3,strides=1,activation='relu',padding=pad))
+# model.add(MaxPooling2D(pool_size=2,strides=2,padding=pad))
+# model.add(BatchNormalization())
 
 
 # ()
 model.add(Convolution2D(filters=256,kernel_size=3,strides=1,activation='relu',padding=pad))
-model.add(MaxPooling2D(pool_size=2,strides=2,padding=pad))
-model.add(BatchNormalization())
+model.add(MaxPooling2D(pool_size=3,strides=2,padding=pad))
+# model.add(BatchNormalization())
 
 # add flatten layer (5x5x16)
 model.add(Flatten())
 # add FC layer (400)
 model.add(Dense(4096,activation='relu'))
-model.add(Dropout(0.41))
-model.add(BatchNormalization())
+model.add(Dropout(0.5))
+# model.add(BatchNormalization())
 
 model.add(Dense(4096,activation='relu'))
-model.add(Dropout(0.41))
-model.add(BatchNormalization())
+model.add(Dropout(0.5))
+# model.add(BatchNormalization())
 
 model.add(Dense(20,activation='softmax'))
 
@@ -128,13 +129,17 @@ model.add(Dense(20,activation='softmax'))
 
 batch_size = 128
 lr = 0.001*batch_size/64
-epoch = 150
+epoch = 30
+
+# fp = open("config.cfg", "rt")
+# params = [int(x) for x in fp.read().split()]
+# batch_size, epoch = params[2:4]
 
 
-from keras.optimizers import Adam
-optimizer = Adam(lr=lr)
-# from keras.optimizers import SGD
-# optimizer = SGD(lr=0.0001, momentum=0.2, nesterov=True)
+# from keras.optimizers import Adam
+# optimizer = Adam(lr=lr)
+from keras.optimizers import SGD
+optimizer = SGD(lr=0.01, momentum=0.9, decay=1e-6, nesterov=True)
 model.compile(loss='categorical_crossentropy',optimizer=optimizer,metrics=['accuracy'])
 
 model.fit(x=np.asarray(data),y=np.asarray(labels),epochs=epoch,batch_size=batch_size)

@@ -113,10 +113,15 @@ model.add(Dense(20,activation='softmax'))
 
 
 
-batch_size = 128
+batch_size = 256
 lr = 0.001*batch_size/64
 # about 90 is optimal
 epoch = 90
+
+# get params
+# fp = open("config.cfg", "rt")
+# params = [int(x) for x in fp.read().split()]
+# batch_size, epoch = params[0:2]
 
 
 from keras.optimizers import Adam
