@@ -107,3 +107,9 @@ Based on this information, *`AlexNet(A)`* and *`AlexNet(B+v)`* should be the mos
     * `224 x 224`input: Much higher computational cost, and little improvements on validation accuracy. 
     * *phase* as 2^nd^ channel: Requires more iterations to converge on in-sample error, and it somehow increases validation set error.
 - Shallow networks like *LeNet-5* can achieve acceptable results in validation set, and the trainning is extremely fast. However, *AlexNet* and *VGG-16* are deeper and more complex, and thus might be more suited for predicting labels of new unseen signals. 
+
+## References
+- Gradient-Based Learning Applied to Document Recognition, Yann LeCun, Léon Bottou, Yoshua Bengio, Patrick Haffner.
+- ImageNet Classification with Deep Convolutional Neural Networks. Alex Krizhevsky, Ilya Sutskever, Geoffrey E. Hinton.
+- Very Deep Convolutional Networks for Large-Scale Image Recognition, Karen Simonyan, Andrew Zisserman.
+
